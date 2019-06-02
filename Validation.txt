@@ -1,0 +1,308 @@
+WE USE FORM REQUEST TO SEPARATE VALIDATION LOGIC OUT OF CONTROLLER. WE DO NOT WISH TO CREATE VALIDATOR MANUALLY. 
+THE VALIDATION RULES CAN BE SPECIFIED BY | DELIMETER OR AN ARRAY.
+THE VALIDATION OBJECT CAN ALSO BE CREATED USING ARTISAN COMMAND.
+php artisan make:rule Uppercase
+
+<?php
+
+namespace App\Rules;
+
+use Illuminate\Contracts\Validation\Rule;
+
+class Uppercase implements Rule
+{
+    /**
+     * Determine if the validation rule passes.
+     *
+     * @param  string  $attribute
+     * @param  mixed  $value
+     * @return bool
+     */
+    public function passes($attribute, $value)
+    {
+        return strtoupper($value) === $value;
+    }
+
+    /**
+     * Get the validation error message.
+     *
+     * @return string
+     */
+    public function message()
+    {
+        return 'The :attribute must be uppercase.';
+    }
+}
+We may call the trans helper from your message method if you would like to return an error message from your translation files
+public function message()
+{
+    return trans('validation.uppercase');
+}
+Once the rule has been defined, we may attach it to a validator by passing an instance of the rule object with your other validation rules:
+use App\Rules\Uppercase;
+
+$request->validate([
+    'name' => ['required', 'string', new Uppercase],
+]);
+
+//CLOSURE Validation
+$validator = Validator::make($request->all(), [
+    'title' => [
+        'required',
+        'max:255',
+        function ($attribute, $value, $fail) {
+            if ($value === 'foo') {
+                $fail($attribute.' is invalid.');
+            }
+        },
+    ],
+]);
+//USING EXTEND
+Another method of registering custom validation rules is using the extend method on the Validator facade. Let's use this method within a service provider to register a custom validation rule:
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Validator;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        Validator::extend('foo', function ($attribute, $value, $parameters, $validator) {
+            return $value == 'foo';
+        });
+    }
+}
+The custom validator Closure receives four arguments: the name of the $attribute being validated, the $value of the attribute, an array of $parameters passed to the rule, and the Validator instance.
+You may also pass a class and method to the extend method instead of a Closure:
+Validator::extend('foo', 'FooValidator@validate');
+
+//
+// The rest of the validation error messages...
+When creating a custom validation rule, you may sometimes need to define custom placeholder replacements for error messages. You may do so by creating a custom Validator as described above then making a call to the replacer method on the Validator facade. You may do this within the boot method of a service provider:
+/**
+ * Bootstrap any application services.
+ *
+ * @return void
+ */
+public function boot()
+{
+    Validator::extend(...);
+
+    Validator::replacer('foo', function ($message, $attribute, $rule, $parameters) {
+        return str_replace(...);
+    });
+}
+//
+Implicit Extensions
+By default, when an attribute being validated is not present or contains an empty string, normal validation rules, including custom extensions, are not run. For example, the unique rule will not be run against an empty string:
+$rules = ['name' => 'unique:users,name'];
+
+$input = ['name' => ''];
+
+Validator::make($input, $rules)->passes(); // true
+For a rule to run even when an attribute is empty, the rule must imply that the attribute is required. To create such an "implicit" extension, use the Validator::extendImplicit() method:
+Validator::extendImplicit('foo', function ($attribute, $value, $parameters, $validator) {
+    return $value == 'foo';
+});
+=========================
+HTTP STATUS CODE FOR AJAX
+=========================
+403
+422
+===========
+FORM FIELDS
+===========
+A Form can have Nested Fields like Normal Fields. The Nested Fields are known as Array Fields too. Use dot(.) for Nested Fields.
+A Form can have Optional Fields too. Use nullable for Optional Fields if you do not want the validator to consider null values as invalid
+
+========================
+THE BLADE FORM COMPONENT
+========================
+1. Whole Form:
+
+<!-- /resources/views/post/create.blade.php -->
+
+<h1>Create Post</h1>
+
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+<!-- Create Post Form -->
+
+2. Individual Component:
+
+<!-- /resources/views/post/create.blade.php -->
+
+<label for="title">Post Title</label>
+
+<input id="title" type="text" class="@error('title') is-invalid @enderror">
+
+@error('title')
+    <div class="alert alert-danger">{{ $message }}</div>
+@enderror
+
+================
+ARTISAN COMMANDS
+================
+php artisan make:request StoreBlogPost
+
+//NEED TO ADD RULES FOR FIELDS LIKE BELOW:
+
+public function rules()
+{
+    return [
+        'title' => 'required|unique:posts|max:255',
+        'body' => 'required',
+    ];
+}
+
+//THE CONTROLLER USAGE PATTERN
+
+public function store(StoreBlogPost $request)
+{
+    // The incoming request is valid...
+
+    // Retrieve the validated input data...
+    $validated = $request->validated();
+}
+
+//THE ABILITY AND AUTHORIZE METHOD
+
+public function authorize()
+{
+    $comment = Comment::find($this->route('comment'));
+
+    return $comment && $this->user()->can('update', $comment);
+}
+
+//THE MESSAGE CUSTOMIZATION METHOD
+
+public function messages()
+{
+    return [
+        'title.required' => 'A title is required',
+        'body.required'  => 'A message is required',
+    ];
+}
+
+//THE ATTRIBUTE CHANGING METHOD
+
+public function attributes()
+{
+    return [
+        'email' => 'email address',
+    ];
+}
+
+========
+VARIABLE
+========
+$errors[Illuminate\Support\MessageBag]
+This is a Named Error Bag: return redirect('register')->withErrors($validator, 'login'); and Accessing: {{ $errors->login->first('email') }} . This is needed for Manual Validator Creation.
+
+//RETRIVE ERRORS FOR WHOLE FORM:
+
+foreach ($errors->all() as $message) {
+    //
+}
+
+//RETRIVE ERROR MESSAGE FOR A PARTICULAR FIELD:
+//USE IT FIRST
+if ($errors->has('email')) {
+    //
+}
+//THEN
+echo $errors->first('email');
+//OR
+foreach ($errors->get('email') as $message) {
+    //
+}
+=====
+TRAIT
+=====
+ValidatesRequests[Base Controller]
+======
+FACADE
+======
+Validator
+==========
+MIDDLEWARE
+==========
+TrimStrings[App\Http\Kernel], ConvertEmptyStringsToNull[App\Http\Kernel]
+======
+METHOD
+======
+validate()[Request]
+=================
+Normal Validation
+=================
+Date:
+AphaNumeric:
+AlphaDash:
+Alphabetic:
+Numeric:
+IP:
+UUID:
+Password:
+Email:
+======================
+Conditional Validation
+======================
+use Illuminate\Validation\Rule;
+
+Validator::make($data, [
+    'email' => [
+        'required',
+        Rule::unique('users')->ignore($user->id),[SYSTEM GENERATED ID]
+        //OR
+        Rule::unique('users')->ignore($user->id, 'user_id')[CUSTOM FIELD]
+        //OR
+        Rule::unique('users')->ignore($user)[WHOLE INSTANCE]
+        //OR
+        Rule::unique('users', 'email_address')->ignore($user->id),[IF SEPARTE COLUMN ACTS LIKE AN IDENTIFIER]
+    ],
+    //OR
+    'email' => Rule::unique('users')->where(function ($query) {
+        return $query->where('account_id', 1);
+    })[CONDITIONAL CHECK]
+]);
+
+//DEPENDENT FIELDS Validation
+//SUPPOSE THIS IS A FORM
+$v = Validator::make($data, [
+    'email' => 'required|email',
+    'games' => 'required|numeric',
+]);
+//SINGLE CONDITION
+$v->sometimes('reason', 'required|max:500', function ($input) {
+    return $input->games >= 100;
+});
+//OR MULTIPLE CONDITION
+$v->sometimes(['reason', 'cost'], 'required', function ($input) {
+    return $input->games >= 100;
+});
