@@ -308,6 +308,8 @@ $v->sometimes(['reason', 'cost'], 'required', function ($input) {
 });
 
 //IF CUSTOM VALIDATION IS REQUIRED FOR A PARTICULAR FORM
+[https://stackoverflow.com/questions/28793716/how-add-custom-validation-rules-when-using-form-request-validation-in-laravel-5
+]
 [[VALIDATION FACTORY]]
 use Illuminate\Validation\Factory as ValidationFactory;
 
