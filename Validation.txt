@@ -306,3 +306,121 @@ $v->sometimes('reason', 'required|max:500', function ($input) {
 $v->sometimes(['reason', 'cost'], 'required', function ($input) {
     return $input->games >= 100;
 });
+
+//IF CUSTOM VALIDATION IS REQUIRED FOR A PARTICULAR FORM
+[[VALIDATION FACTORY]]
+use Illuminate\Validation\Factory as ValidationFactory;
+
+class UpdateMyUserRequest extends FormRequest {
+
+    public function __construct(ValidationFactory $validationFactory)
+    {
+
+        $validationFactory->extend(
+            'foo',
+            function ($attribute, $value, $parameters) {
+                return 'foo' === $value;
+            },
+            'Sorry, it failed foo validation!'
+        );
+
+    }
+
+    public function rules()
+    {
+        return [
+            'username' => 'foo',
+        ];
+    }
+}
+[[VALIDATOR]]
+<?php namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Validator;
+
+abstract class Request extends FormRequest {
+
+    public function validator(){
+
+        $v = Validator::make($this->input(), $this->rules(), $this->messages(), $this->attributes());
+
+        if(method_exists($this, 'moreValidation')){
+            $this->moreValidation($v);
+        }
+
+        return $v;
+    }
+}
+
+Now all your specific requests will look like this: 
+<?php namespace App\Http\Requests;
+
+use App\Http\Requests\Request;
+
+class ShipRequest extends Request {
+
+    public function rules()
+    {
+        return [
+            'shipping_country' => 'max:60',
+            'items' => 'array'
+        ];
+    }
+
+    // Here we can do more with the validation instance...
+    public function moreValidation($validator){
+
+        // Use an "after validation hook" (see laravel docs)
+        $validator->after(function($validator)
+        {
+            // Check to see if valid numeric array
+            foreach ($this->input('items') as $item) {
+                if (!is_int($item)) {
+                    $validator->errors()->add('items', 'Items should all be numeric');
+                    break;
+                }
+            }
+        });
+    }
+
+    // Bonus: I also like to take care of any custom messages here
+    public function messages(){
+        return [
+            'shipping_country.max' => 'Whoa! Easy there on shipping char. count!'
+        ];
+    }
+}
+
+//IF CUSTOM VALIDATION IS REQUIRED FOR MANY FORMS
+<?php namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+class ValidatorServiceProvider extends ServiceProvider {
+
+    public function boot()
+    {
+        $this->app['validator']->extend('numericarray', function ($attribute, $value, $parameters)
+        {
+            foreach ($value as $v) {
+                if (!is_int($v)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    public function register()
+    {
+        //
+    }
+}
+Then register the provider by adding it to the list in config/app.php:
+'providers' => [
+    // Other Service Providers
+
+    'App\Providers\ValidatorServiceProvider',
+],
+You now can use the numericarray validation rule everywhere you want
