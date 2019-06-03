@@ -1,0 +1,13 @@
+laravel new AppName
+cd AppName
+composer update
+====================
+HOW TO ADD ADMIN-LTE
+====================
+composer require "acacha/admin-lte-template-laravel:2.*"
+Acacha\AdminLTETemplateLaravel\Providers\AdminLTETemplateServiceProvider::class,[config/app providers array]
+Acacha\AdminLTETemplateLaravel\Providers\AdminLTETemplateServiceProvider::class,,[config/app aliases array]
+php artisan vendor:publish --tag=adminlte --force
+COMMENT THE FOLLWING LINE IN app/Providers/AppServiceProvider.php
+// $this->app->register(DuskServiceProvider::class);
+composer update
