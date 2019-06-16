@@ -11,3 +11,26 @@ php artisan vendor:publish --tag=adminlte --force
 COMMENT THE FOLLWING LINE IN app/Providers/AppServiceProvider.php
 // $this->app->register(DuskServiceProvider::class);
 composer update
+
+=============
+================
+INSTALL PACKAGES
+================
+    composer require silber/bouncer v1.0.0-rc.5
+    composer require yajra/laravel-datatables-oracle v9.4.0
+    composer require soved/laravel-gdpr v1.5.2
+    composer require chumper/zipper v1.0.2
+    composer require ezyang/htmlpurifier v4.10.0
+    composer require fideloper/proxy 4.1.0
+    composer require laravel/tinker v1.0.8
+    composer require setasign/fpdf 1.8.1
+    composer require paypal/rest-api-sdk-php 1.14.0
+    composer require stripe/stripe-php v6.37.1
+    composer require tedivm/jshrink v1.3.1
+    
+    composer require filp/whoops 2.3.1 --dev
+    composer require fzaninotto/faker v1.8.0 --dev
+    composer require mockery/mockery 1.2.2 --dev
+    composer require nunomaduro/collision v3.0.1 --dev
+    composer require phpunit/phpunit 8.2.2 --dev
+    
